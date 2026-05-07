@@ -60,7 +60,7 @@ class SistemaEstoqueBellga(ctk.CTk):
         self.footer.pack(fill="x", side="bottom", pady=5)
         
         self.btn_gerar_final = None
-        ctk.CTkLabel(self.footer, text="© 2026 André Nascimento - Todos os direitos reservados", 
+        ctk.CTkLabel(self.footer, text="© 2026 Desenvolvido por André Nascimento - Todos os direitos reservados", 
                      font=("Segoe UI", 12, "italic"), text_color="#AAAAAA").pack(side="bottom")
 
     def carregar_memoria(self):

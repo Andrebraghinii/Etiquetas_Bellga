@@ -146,7 +146,7 @@ class SistemaEstoqueBellga(ctk.CTk):
             
             if self.btn_gerar_final: self.btn_gerar_final.destroy()
             self.btn_gerar_final = ctk.CTkButton(self.footer, text=f"2. IMPRIMIR ETIQUETAS (NF {self.num_nf})", 
-                                                command=self.gerar_pdf, fg_color="#E67E22", hover_color="#D35400", 
+                                                command=self.gerar_pdf, fg_color="#8B651B", hover_color="#D35400", 
                                                 height=50, font=("Segoe UI", 16, "bold"))
             self.btn_gerar_final.pack(pady=(5, 2), fill="x", padx=100)
             

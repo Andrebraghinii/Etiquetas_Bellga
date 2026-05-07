@@ -59,7 +59,7 @@ class SistemaEstoqueBellga(ctk.CTk):
         self.footer.pack(fill="x", side="bottom", pady=5)
         
         self.btn_gerar_final = None
-        ctk.CTkLabel(self.footer, text="Desenvolvido por André Nascimento", font=("Segoe UI", 12, "italic"), text_color="#AAAAAA").pack(side="bottom")
+        ctk.CTkLabel(self.footer, text="# © 2026 André Nascimento - Todos os direitos reservados\nSistema de Gerenciamento de Etiquetas Bellga Calçados", font=("Segoe UI", 12, "italic"), text_color="#AAAAAA").pack(side="bottom")
 
     def carregar_memoria(self):
         if os.path.exists(DB_FILE):
@@ -179,7 +179,6 @@ class SistemaEstoqueBellga(ctk.CTk):
                     pdf.text(5, 6, f"FORN: {self.nome_fornecedor[:35]}")
                     pdf.text(5, 11, f"MAT: {item['nome'][:40]}")
                     pdf.set_font("Helvetica", '', 9)
-                    # Adicionada a data na etiqueta
                     pdf.text(5, 16, f"NF: {self.num_nf} | COD: {c_int} | DATA: {data_impressao}")
                     pdf.text(5, 21, f"VOL: {n_vol}/{vols} | QTD: {qtd_v}")
                     

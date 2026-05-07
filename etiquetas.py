@@ -34,25 +34,23 @@ class SistemaEstoqueBellga(ctk.CTk):
                                            command=self.processar_xml, fg_color="#8B651B",
                                            font=("Segoe UI", 16, "bold"), height=45)
         self.btn_carregar.pack(pady=(5, 10))
-        
-        self.header_frame = ctk.CTkFrame(self.main_container, fg_color=COR_FUNDO)
-        self.header_frame.pack(fill="x", padx=15, pady=(5, 0))
-        
-        
-        self.header_frame.grid_columnconfigure(0, weight=0, minsize=40) 
-        self.header_frame.grid_columnconfigure(1, weight=3)             
-        self.header_frame.grid_columnconfigure(2, weight=1)             
-        self.header_frame.grid_columnconfigure(3, weight=1)             
-        self.header_frame.grid_columnconfigure(4, weight=1)             
-        self.header_frame.grid_columnconfigure(5, weight=1, minsize=150)
 
+        self.header = ctk.CTkFrame(self.main_container, fg_color=COR_FUNDO)
+        self.header.pack(fill="x", padx=15)
         
-        ctk.CTkLabel(self.header_frame, text="Pr?", text_color=COR_DEST_DOURADO).grid(row=0, column=0)
-        ctk.CTkLabel(self.header_frame, text="Material e Quantidade na NF", text_color=COR_DEST_DOURADO, anchor="w").grid(row=0, column=1, sticky="w", padx=5)
-        ctk.CTkLabel(self.header_frame, text="Cód. Int.", text_color=COR_DEST_DOURADO).grid(row=0, column=2)
-        ctk.CTkLabel(self.header_frame, text="Vols.", text_color=COR_DEST_DOURADO).grid(row=0, column=3)
-        ctk.CTkLabel(self.header_frame, text="Qtd Padrão", text_color=COR_DEST_DOURADO).grid(row=0, column=4)
-        ctk.CTkLabel(self.header_frame, text="SÓ O Nº:", text_color="#5dade2").grid(row=0, column=5)
+        self.header.grid_columnconfigure(0, weight=0, minsize=40)
+        self.header.grid_columnconfigure(1, weight=4)
+        self.header.grid_columnconfigure(2, weight=1)
+        self.header.grid_columnconfigure(3, weight=1)
+        self.header.grid_columnconfigure(4, weight=1)
+        self.header.grid_columnconfigure(5, weight=1)
+
+        ctk.CTkLabel(self.header, text="Pr?", text_color=COR_DEST_DOURADO).grid(row=0, column=0)
+        ctk.CTkLabel(self.header, text="Material e Quantidade na NF", text_color=COR_DEST_DOURADO, anchor="w").grid(row=0, column=1, sticky="w", padx=5)
+        ctk.CTkLabel(self.header, text="Cód. Int.", text_color=COR_DEST_DOURADO).grid(row=0, column=2)
+        ctk.CTkLabel(self.header, text="Vols.", text_color=COR_DEST_DOURADO).grid(row=0, column=3)
+        ctk.CTkLabel(self.header, text="Qtd Padrão", text_color=COR_DEST_DOURADO).grid(row=0, column=4)
+        ctk.CTkLabel(self.header, text="SÓ O Nº:", text_color="#5dade2").grid(row=0, column=5)
 
         self.frame_itens = ctk.CTkScrollableFrame(self.main_container, fg_color="#3D3D3D", border_color=COR_DEST_DOURADO, border_width=1)
         self.frame_itens.pack(pady=5, padx=5, fill="both", expand=True)
@@ -61,7 +59,8 @@ class SistemaEstoqueBellga(ctk.CTk):
         self.footer.pack(fill="x", side="bottom", pady=5)
         
         self.btn_gerar_final = None
-        ctk.CTkLabel(self.footer, text="© 2026 André Nascimento - Todos os direitos reservados\nSistema de Gerenciamento de Etiquetas Bellga Calçados", font=("Segoe UI", 12, "italic"), text_color="#AAAAAA").pack(side="bottom")
+        ctk.CTkLabel(self.footer, text="© 2026 André Nascimento - Todos os direitos reservados", 
+                     font=("Segoe UI", 12, "italic"), text_color="#AAAAAA").pack(side="bottom")
 
     def carregar_memoria(self):
         if os.path.exists(DB_FILE):
@@ -111,35 +110,31 @@ class SistemaEstoqueBellga(ctk.CTk):
             for i, p in enumerate(det):
                 nome_prod = p['prod']['xProd']
                 qtd_total = int(float(p['prod']['qCom']))
-            
+                
                 row = ctk.CTkFrame(self.frame_itens, fg_color="#454545", height=50)
                 row.pack(fill="x", pady=2, padx=5)
                 
                 row.grid_columnconfigure(0, weight=0, minsize=40)
-                row.grid_columnconfigure(1, weight=3)
+                row.grid_columnconfigure(1, weight=4)
                 row.grid_columnconfigure(2, weight=1)
                 row.grid_columnconfigure(3, weight=1)
                 row.grid_columnconfigure(4, weight=1)
-                row.grid_columnconfigure(5, weight=1, minsize=150)
+                row.grid_columnconfigure(5, weight=1)
                 
                 v_chk = ctk.BooleanVar(value=True) 
                 ctk.CTkCheckBox(row, text="", variable=v_chk, width=40, fg_color=COR_DEST_DOURADO).grid(row=0, column=0, padx=5)
-                
                 ctk.CTkLabel(row, text=f"({qtd_total}x) {nome_prod[:40]}", anchor="w", font=("Segoe UI", 11)).grid(row=0, column=1, sticky="w", padx=5)
                 
                 cod_sugerido = self.memoria.get(nome_prod, "")
                 e_c = ctk.CTkEntry(row, justify="center")
-                e_c.insert(0, cod_sugerido)
-                e_c.grid(row=0, column=2, padx=5, sticky="ew")
+                e_c.insert(0, cod_sugerido); e_c.grid(row=0, column=2, padx=5, sticky="ew")
                 e_c.bind("<Return>", lambda e, idx=i: self.focar_proximo(e, idx))
                 
                 e_v = ctk.CTkEntry(row, justify="center")
-                e_v.insert(0, "1")
-                e_v.grid(row=0, column=3, padx=5, sticky="ew")
+                e_v.insert(0, "1"); e_v.grid(row=0, column=3, padx=5, sticky="ew")
                 
                 e_qp = ctk.CTkEntry(row, justify="center")
-                e_qp.insert(0, str(qtd_total))
-                e_qp.grid(row=0, column=4, padx=5, sticky="ew")
+                e_qp.insert(0, str(qtd_total)); e_qp.grid(row=0, column=4, padx=5, sticky="ew")
 
                 e_sel = ctk.CTkEntry(row, justify="center", fg_color="#1A1A1A", border_color="#5dade2")
                 e_sel.grid(row=0, column=5, padx=5, sticky="ew")
@@ -154,7 +149,39 @@ class SistemaEstoqueBellga(ctk.CTk):
         except Exception as e: messagebox.showerror("Erro", f"Erro no XML: {e}")
 
     def gerar_pdf(self):
-        pass
+        selecionados = [i for i in self.itens_nfe if i['chk'].get()]
+        if not selecionados: return
+        data_i = datetime.now().strftime("%d/%m/%Y")
+        try:
+            pdf = FPDF(orientation='L', unit='mm', format=(35, 100))
+            for item in selecionados:
+                c_int = item['e_cod'].get().strip()
+                vols = int(item['e_vol'].get() or 1)
+                padrao = int(item['e_pad'].get() or item['total'])
+                self.salvar_na_memoria(item['nome'], c_int)
+                
+                acumulado = 0
+                for idx in range(vols):
+                    n_vol = idx + 1
+                    qtd_v = padrao if idx < vols - 1 else item['total'] - acumulado
+                    acumulado += qtd_v
+                    if qtd_v <= 0: continue
+                    
+                    pdf.add_page()
+                    pdf.set_font("Helvetica", 'B', 9)
+                    pdf.text(5, 6, f"FORN: {self.nome_fornecedor[:35]}")
+                    pdf.text(5, 11, f"MAT: {item['nome'][:40]}")
+                    pdf.set_font("Helvetica", '', 9)
+                    pdf.text(5, 16, f"NF: {self.num_nf} | COD: {c_int} | DATA: {data_i}")
+                    pdf.text(5, 21, f"VOL: {n_vol}/{vols} | QTD: {qtd_v}")
+                    buf = io.BytesIO()
+                    Code128(f"{c_int}*{qtd_v}#{n_vol}", writer=ImageWriter()).write(buf, options={"write_text":False, "module_height":5.0})
+                    buf.seek(0); pdf.image(buf, x=25, y=23, w=50, h=10)
+
+            caminho_local = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), f"Etiquetas_NF_{self.num_nf}.pdf")
+            pdf.output(caminho_local)
+            os.startfile(caminho_local)
+        except Exception as e: messagebox.showerror("Erro", f"Erro ao salvar: {e}")
 
 if __name__ == "__main__":
     SistemaEstoqueBellga().mainloop()

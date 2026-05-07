@@ -15,7 +15,7 @@ DB_FILE = "memoria_codigos.json"
 class SistemaEstoqueBellga(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Sistema de Estoque Bellga Calçados")
+        self.title("Sistema de Estoque Bellga Calçados - Elgin L42")
         
         largura_tela = self.winfo_screenwidth()
         altura_tela = self.winfo_screenheight()
@@ -59,7 +59,7 @@ class SistemaEstoqueBellga(ctk.CTk):
         self.footer.pack(fill="x", side="bottom", pady=5)
         
         self.btn_gerar_final = None
-        ctk.CTkLabel(self.footer, text="© 2026 André Nascimento - Todos os direitos reservados", 
+        ctk.CTkLabel(self.footer, text="© 2026 Desenvolvido por André Nascimento - Todos os direitos reservados", 
                      font=("Segoe UI", 12, "italic"), text_color="#AAAAAA").pack(side="bottom")
 
     def carregar_memoria(self):
@@ -128,6 +128,8 @@ class SistemaEstoqueBellga(ctk.CTk):
                 cod_sugerido = self.memoria.get(nome_prod, "")
                 e_c = ctk.CTkEntry(row, justify="center")
                 e_c.insert(0, cod_sugerido); e_c.grid(row=0, column=2, padx=5, sticky="ew")
+                
+                # COMANDO PARA O ENTER:
                 e_c.bind("<Return>", lambda e, idx=i: self.focar_proximo(e, idx))
                 
                 e_v = ctk.CTkEntry(row, justify="center")
@@ -153,7 +155,8 @@ class SistemaEstoqueBellga(ctk.CTk):
         if not selecionados: return
         data_i = datetime.now().strftime("%d/%m/%Y")
         try:
-            pdf = FPDF(orientation='L', unit='mm', format=(35, 100))
+            # FORMATO 100mm x 50mm PARA ELGIN
+            pdf = FPDF(orientation='L', unit='mm', format=(50, 100))
             for item in selecionados:
                 c_int = item['e_cod'].get().strip()
                 vols = int(item['e_vol'].get() or 1)
@@ -168,15 +171,17 @@ class SistemaEstoqueBellga(ctk.CTk):
                     if qtd_v <= 0: continue
                     
                     pdf.add_page()
-                    pdf.set_font("Helvetica", 'B', 9)
-                    pdf.text(5, 6, f"FORN: {self.nome_fornecedor[:35]}")
-                    pdf.text(5, 11, f"MAT: {item['nome'][:40]}")
-                    pdf.set_font("Helvetica", '', 9)
-                    pdf.text(5, 16, f"NF: {self.num_nf} | COD: {c_int} | DATA: {data_i}")
-                    pdf.text(5, 21, f"VOL: {n_vol}/{vols} | QTD: {qtd_v}")
+                    pdf.set_font("Helvetica", 'B', 11)
+                    pdf.text(5, 10, f"FORN: {self.nome_fornecedor[:35]}")
+                    pdf.text(5, 18, f"MAT: {item['nome'][:40]}")
+                    pdf.set_font("Helvetica", '', 11)
+                    pdf.text(5, 26, f"NF: {self.num_nf} | COD: {c_int}")
+                    pdf.text(5, 34, f"DATA: {data_i} | VOL: {n_vol}/{vols} | QTD: {qtd_v}")
+                    
                     buf = io.BytesIO()
                     Code128(f"{c_int}*{qtd_v}#{n_vol}", writer=ImageWriter()).write(buf, options={"write_text":False, "module_height":5.0})
-                    buf.seek(0); pdf.image(buf, x=25, y=23, w=50, h=10)
+                    buf.seek(0)
+                    pdf.image(buf, x=15, y=36, w=70, h=12)
 
             caminho_local = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), f"Etiquetas_NF_{self.num_nf}.pdf")
             pdf.output(caminho_local)

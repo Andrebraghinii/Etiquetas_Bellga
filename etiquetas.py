@@ -8,7 +8,6 @@ from barcode import Code128
 from barcode.writer import ImageWriter
 from PIL import Image
 
-# --- Configurações de Estilo ---
 COR_FUNDO = "#2B2B2B" 
 COR_DEST_DOURADO = "#CF9728"
 DB_FILE = "memoria_codigos.json"
@@ -18,7 +17,6 @@ class SistemaEstoqueBellga(ctk.CTk):
         super().__init__()
         self.title("Sistema de Estoque Bellga Calçados")
         
-        # Ajuste de Janela Responsiva
         largura_tela = self.winfo_screenwidth()
         altura_tela = self.winfo_screenheight()
         self.geometry(f"{min(1200, largura_tela-50)}x{min(900, altura_tela-100)}")
@@ -37,7 +35,6 @@ class SistemaEstoqueBellga(ctk.CTk):
                                            font=("Segoe UI", 16, "bold"), height=45)
         self.btn_carregar.pack(pady=(5, 10))
 
-        # --- CABEÇALHO COM GRID ---
         self.header = ctk.CTkFrame(self.main_container, fg_color=COR_FUNDO)
         self.header.pack(fill="x", padx=15)
         
@@ -152,7 +149,6 @@ class SistemaEstoqueBellga(ctk.CTk):
         selecionados = [i for i in self.itens_nfe if i['chk'].get()]
         if not selecionados: return
         
-        # Pega a data atual no momento do clique
         data_impressao = datetime.now().strftime("%d/%m/%Y")
         
         try:

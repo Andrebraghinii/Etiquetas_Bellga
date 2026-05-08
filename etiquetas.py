@@ -61,8 +61,7 @@ class SistemaEstoqueBellga(ctk.CTk):
         self.footer = ctk.CTkFrame(self.main_container, fg_color=COR_FUNDO)
         self.footer.pack(fill="x", side="bottom", pady=5)
         
-        self.btn_gerar_final = None
-        ctk.CTkLabel(self.footer, text="© 2026 Desenvolvido por André Nascimento - Todos os direitos reservados", 
+        ctk.CTkLabel(self.footer, text="© 2026 desenvolvido por André Nascimento - Todos os direitos reservados", 
                      font=("Segoe UI", 12, "italic"), text_color="#AAAAAA").pack(side="bottom")
 
     def carregar_memoria(self):
@@ -91,10 +90,6 @@ class SistemaEstoqueBellga(ctk.CTk):
         except:
             ctk.CTkLabel(self.main_container, text="BELLGA CALÇADOS", font=("Segoe UI", 28, "bold"), text_color=COR_DEST_DOURADO).pack(pady=10)
 
-    def focar_proximo(self, event, index):
-        if index + 1 < len(self.itens_nfe):
-            self.itens_nfe[index + 1]['e_cod'].focus()
-
     def processar_xml(self):
         caminho = filedialog.askopenfilename(filetypes=[("XML", "*.xml")])
         if not caminho: return
@@ -117,44 +112,27 @@ class SistemaEstoqueBellga(ctk.CTk):
                 row = ctk.CTkFrame(self.frame_itens, fg_color="#454545", height=40)
                 row.pack(fill="x", pady=2, padx=5)
                 
-                row.grid_columnconfigure(0, weight=0, minsize=40)
-                row.grid_columnconfigure(1, weight=1)
-                row.grid_columnconfigure(2, weight=0, minsize=65)
-                row.grid_columnconfigure(3, weight=0, minsize=95)
-                row.grid_columnconfigure(4, weight=0, minsize=55)
-                row.grid_columnconfigure(5, weight=0, minsize=80)
+                row.grid_columnconfigure(0, weight=0, minsize=40); row.grid_columnconfigure(1, weight=1)
+                row.grid_columnconfigure(2, weight=0, minsize=65); row.grid_columnconfigure(3, weight=0, minsize=95)
+                row.grid_columnconfigure(4, weight=0, minsize=55); row.grid_columnconfigure(5, weight=0, minsize=80)
                 row.grid_columnconfigure(6, weight=0, minsize=90)
                 
                 v_chk = ctk.BooleanVar(value=True) 
                 ctk.CTkCheckBox(row, text="", variable=v_chk, width=40, fg_color=COR_DEST_DOURADO).grid(row=0, column=0, padx=5)
-                
                 lbl_nome = ctk.CTkLabel(row, text=f"({qtd_total}x) {nome_prod[:30]}", anchor="w", font=("Segoe UI", 10))
                 lbl_nome.grid(row=0, column=1, sticky="w", padx=5)
 
-                e_conv = ctk.CTkEntry(row, justify="center", width=55, height=28)
-                e_conv.insert(0, "1"); e_conv.grid(row=0, column=2, padx=2)
-                
+                e_conv = ctk.CTkEntry(row, justify="center", width=55, height=28); e_conv.insert(0, "1"); e_conv.grid(row=0, column=2, padx=2)
                 cod_sugerido = self.memoria.get(nome_prod, "")
-                e_c = ctk.CTkEntry(row, justify="center", width=85, height=28)
-                e_c.insert(0, cod_sugerido); e_c.grid(row=0, column=3, padx=2)
-                e_c.bind("<Return>", lambda e, idx=i: self.focar_proximo(e, idx))
+                e_c = ctk.CTkEntry(row, justify="center", width=85, height=28); e_c.insert(0, cod_sugerido); e_c.grid(row=0, column=3, padx=2)
+                e_v = ctk.CTkEntry(row, justify="center", width=45, height=28); e_v.insert(0, "1"); e_v.grid(row=0, column=4, padx=2)
+                e_qp = ctk.CTkEntry(row, justify="center", width=70, height=28); e_qp.insert(0, str(qtd_total)); e_qp.grid(row=0, column=5, padx=2)
+                e_sel = ctk.CTkEntry(row, justify="center", width=80, height=28, fg_color="#1A1A1A", border_color="#5dade2"); e_sel.grid(row=0, column=6, padx=2)
                 
-                e_v = ctk.CTkEntry(row, justify="center", width=45, height=28)
-                e_v.insert(0, "1"); e_v.grid(row=0, column=4, padx=2)
-
-                e_qp = ctk.CTkEntry(row, justify="center", width=70, height=28)
-                e_qp.insert(0, str(qtd_total)); e_qp.grid(row=0, column=5, padx=2)
-
-                e_sel = ctk.CTkEntry(row, justify="center", width=80, height=28, fg_color="#1A1A1A", border_color="#5dade2")
-                e_sel.grid(row=0, column=6, padx=2)
-                
-                self.itens_nfe.append({'chk':v_chk, 'nome':nome_prod, 'total':qtd_total, 'e_conv':e_conv, 'e_cod':e_c, 'e_vol':e_v, 'e_pad':e_qp, 'e_sel':e_sel})
+                self.itens_nfe.append({'chk':v_chk, 'nome':nome_prod, 'total':qtd_total, 'e_conv':e_conv, 'e_cod':e_c, 'e_vol':e_v, 'e_pad':e_qp})
             
-            if self.btn_gerar_final: self.btn_gerar_final.destroy()
-            self.btn_gerar_final = ctk.CTkButton(self.footer, text=f"2. IMPRIMIR ETIQUETAS (NF {self.num_nf})", 
-                                                command=self.gerar_pdf, fg_color="#E67E22", hover_color="#D35400", 
-                                                height=50, font=("Segoe UI", 16, "bold"))
-            self.btn_gerar_final.pack(pady=(5, 2), fill="x", padx=100)
+            ctk.CTkButton(self.footer, text=f"2. IMPRIMIR ETIQUETAS (NF {self.num_nf})", command=self.gerar_pdf, 
+                          fg_color="#E67E22", hover_color="#D35400", height=50, font=("Segoe UI", 16, "bold")).pack(pady=(5, 2), fill="x", padx=100)
             
         except Exception as e: messagebox.showerror("Erro", f"Erro no XML: {e}")
 
@@ -172,15 +150,16 @@ class SistemaEstoqueBellga(ctk.CTk):
                 
                 self.salvar_na_memoria(item['nome'], c_int)
                 
-                total_convertido = item['total'] * conv
-                padrao_convertido = padrao * conv
+                total_limite_m2 = item['total'] * conv
                 acumulado = 0
                 
                 for idx in range(vols):
                     n_vol = idx + 1
-                    qtd_v = padrao_convertido if idx < vols - 1 else total_convertido - acumulado
-                    acumulado += qtd_v
+                    # A Quantidade Padrão agora entra pura, sem multiplicar pela conversão novamente
+                    qtd_v = padrao if idx < vols - 1 else total_limite_m2 - acumulado
+                    
                     if qtd_v <= 0: continue
+                    acumulado += qtd_v
                     
                     pdf.add_page()
                     pdf.set_font("Helvetica", 'B', 11)
@@ -205,5 +184,4 @@ class SistemaEstoqueBellga(ctk.CTk):
             os.startfile(caminho_local)
         except Exception as e: messagebox.showerror("Erro", f"Erro no cálculo: {e}")
 
-if __name__ == "__main__":
-    SistemaEstoqueBellga().mainloop()
+if __name__ == "__main__": SistemaEstoqueBellga().mainloop()

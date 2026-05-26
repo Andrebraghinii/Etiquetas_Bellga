@@ -122,6 +122,16 @@ class SistemaEstoqueBellga(ctk.CTk):
         ctk.CTkLabel(inner_topo, text="BELLGA CALÇADOS", font=("Segoe UI", 28, "bold"), 
                      text_color=COR_DEST_DOURADO).pack(pady=5)
 
+    def vincular_navegacao_enter(self, campos_ordenados):
+        for i in range(len(campos_ordenados) - 1):
+            atual = campos_ordenados[i]
+            proximo = campos_ordenados[i+1]
+            atual.bind("<Return>", lambda event, prox=proximo: self.pular_foco(event, prox), add="+")
+
+    def pular_foco(self, event, proximo_widget):
+        proximo_widget.focus_set()
+        return "break"
+
     def processar_xml(self):
         caminho = filedialog.askopenfilename(filetypes=[("XML", "*.xml")])
         if not caminho: return
@@ -178,9 +188,11 @@ class SistemaEstoqueBellga(ctk.CTk):
                 e_so_num.grid(row=0, column=7, padx=12)
                 
                 e_c.bind("<FocusOut>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c))
-                e_c.bind("<Return>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c))
+                e_c.bind("<Return>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c), add="+")
                 
-                self.itens_nfe.append({'chk':v_chk, 'e_nome':e_nome, 'e_qtd_xml':e_qtd_xml, 'e_conv':e_conv, 'e_cod':e_c, 'e_vol':e_v, 'e_pad':e_qp, 'e_so_num':e_so_num})
+                self.vincular_navegacao_enter([e_nome, e_c, e_v, e_qp, e_so_num])
+                
+                self.itens_nfe.append({'chk':v_chk, 'e_nome':e_nome, 'e_qtd_xml':e_qtd_xml, 'e_conv':e_conv, 'e_cod':e_c, 'e_vol':e_v, 'e_pad':e_qp, 'e_so_num':e_so_num, 'manual':False})
             
             self.btn_gerar_footer.configure(text=f"2. GERAR ETIQUETAS (NF {self.num_nf})")
             
@@ -220,9 +232,13 @@ class SistemaEstoqueBellga(ctk.CTk):
         e_so_num.grid(row=0, column=7, padx=12)
         
         e_c.bind("<FocusOut>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c))
-        e_c.bind("<Return>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c))
+        e_c.bind("<Return>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c), add="+")
         
-        self.itens_nfe.append({'chk':v_chk, 'e_nome':e_nome, 'e_qtd_xml':e_qtd_xml, 'e_conv':e_conv, 'e_cod':e_c, 'e_vol':e_v, 'e_pad':e_qp, 'e_so_num':e_so_num})
+        self.vincular_navegacao_enter([e_nome, e_c, e_v, e_qp, e_so_num])
+        
+        self.itens_nfe.append({'chk':v_chk, 'e_nome':e_nome, 'e_qtd_xml':e_qtd_xml, 'e_conv':e_conv, 'e_cod':e_c, 'e_vol':e_v, 'e_pad':e_qp, 'e_so_num':e_so_num, 'manual':True})
+        
+        e_nome.focus_set()
 
     def buscar_por_codigo_callback(self, event, widget_nome, widget_cod):
         codigo_atual = widget_cod.get().strip()
@@ -234,9 +250,54 @@ class SistemaEstoqueBellga(ctk.CTk):
                 widget_nome.insert(0, nome_salvo)
                 break
 
+    def abrir_janela_input(self, titulo, mensagem):
+        janela_dialogo = ctk.CTkToplevel(self)
+        janela_dialogo.title(titulo)
+        janela_dialogo.geometry("400x200")
+        janela_dialogo.configure(fg_color=COR_FUNDO)
+        janela_dialogo.resizable(False, False)
+        janela_dialogo.transient(self)
+        janela_dialogo.grab_set()
+        
+        self.update_idletasks()
+        x = self.winfo_x() + (self.winfo_width() // 2) - 200
+        y = self.winfo_y() + (self.winfo_height() // 2) - 100
+        janela_dialogo.geometry(f"+{x}+{y}")
+        
+        ctk.CTkLabel(janela_dialogo, text=mensagem, font=("Segoe UI", 14, "bold"), text_color=COR_DEST_DOURADO).pack(pady=(25, 10), padx=20)
+        
+        entrada = ctk.CTkEntry(janela_dialogo, width=320, height=35, font=("Segoe UI", 12), fg_color="#333333", border_color=COR_DEST_DOURADO)
+        entrada.pack(pady=10)
+        entrada.focus_set()
+        
+        resultado = {"valor": ""}
+        
+        def confirmar():
+            resultado["valor"] = entrada.get()
+            janela_dialogo.destroy()
+            
+        entrada.bind("<Return>", lambda e: confirmar())
+        
+        ctk.CTkButton(janela_dialogo, text="CONFIRMAR", font=("Segoe UI", 12, "bold"), fg_color=COR_BOTAO_MARROM, width=150, height=35, command=confirmar).pack(pady=(5, 15))
+        
+        self.wait_window(janela_dialogo)
+        return resultado["valor"]
+
     def gerar_pdf(self):
         selecionados = [i for i in self.itens_nfe if i['chk'].get()]
         if not selecionados: return
+        
+        possui_manual_selecionado = any(item.get('manual', False) for item in selecionados)
+        
+        if possui_manual_selecionado and not self.num_nf:
+            forn_input = self.abrir_janela_input("Dados do Fornecedor", "DIGITE O NOME DO FORNECEDOR:")
+            if forn_input:
+                self.nome_fornecedor = forn_input.strip().upper()
+                
+            nf_input = self.abrir_janela_input("Número da NF", "DIGITE O NÚMERO DA NOTA FISCAL:")
+            if nf_input:
+                self.num_nf = nf_input.strip().upper()
+
         data_i = datetime.now().strftime("%d/%m/%Y")
         
         try:

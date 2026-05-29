@@ -26,8 +26,6 @@ class SistemaEstoqueBellga(ctk.CTk):
         
         self.memoria = self.carregar_memoria()
         self.itens_nfe = []
-        self.num_nf = ""
-        self.nome_fornecedor = ""
         self.menu_sugestao = None
         
         self.main_container = ctk.CTkFrame(self, fg_color=COR_FUNDO)
@@ -37,6 +35,20 @@ class SistemaEstoqueBellga(ctk.CTk):
         self.topo_container.pack(fill="x", pady=(5, 10))
 
         self.inserir_logo_e_titulo()
+
+        # Painel Superior para Fornecedor e NF digitados manualmente ou vindos do XML
+        self.dados_nf_container = ctk.CTkFrame(self.main_container, fg_color="#3D3D3D", border_color=COR_DEST_DOURADO, border_width=1)
+        self.dados_nf_container.pack(fill="x", padx=5, pady=(0, 10))
+        
+        ctk.CTkLabel(self.dados_nf_container, text="FORNECEDOR:", font=("Segoe UI", 12, "bold"), text_color="white").pack(side="left", padx=(15, 5), pady=10)
+        self.e_fornecedor_geral = ctk.CTkEntry(self.dados_nf_container, font=("Segoe UI", 12), width=350, height=30, placeholder_text="NOME DO FORNECEDOR...")
+        self.e_fornecedor_geral.pack(side="left", padx=5, pady=10)
+        self.e_fornecedor_geral.bind("<KeyRelease>", lambda event, w=self.e_fornecedor_geral: self.capturar_caps_lock(event, w))
+
+        ctk.CTkLabel(self.dados_nf_container, text="Nº DA NF:", font=("Segoe UI", 12, "bold"), text_color="white").pack(side="left", padx=(25, 5), pady=10)
+        self.e_nf_geral = ctk.CTkEntry(self.dados_nf_container, font=("Segoe UI", 12), width=150, height=30, placeholder_text="NÚMERO DA NOTA...")
+        self.e_nf_geral.pack(side="left", padx=5, pady=10)
+        self.e_nf_geral.bind("<KeyRelease>", lambda event, w=self.e_nf_geral: self.capturar_caps_lock(event, w))
         
         self.botoes_container = ctk.CTkFrame(self.main_container, fg_color=COR_FUNDO)
         self.botoes_container.pack(fill="x", pady=(5, 10))
@@ -51,7 +63,6 @@ class SistemaEstoqueBellga(ctk.CTk):
                                             font=("Segoe UI", 14, "bold"), height=45)
         self.btn_adicionar.pack(side="left", expand=True, fill="x", padx=5)
 
-        # Modificação 3: Botão Limpar Tela
         self.btn_limpar = ctk.CTkButton(self.botoes_container, text="LIMPAR TELA / NOVA NF", 
                                             command=self.limpar_tela, fg_color="#c0392b", hover_color="#962d22",
                                             font=("Segoe UI", 14, "bold"), height=45)
@@ -87,7 +98,7 @@ class SistemaEstoqueBellga(ctk.CTk):
         ctk.CTkLabel(self.footer, text="© 2026 desenvolvido por André Nascimento - Todos os direitos reservados", 
                      font=("Segoe UI", 12, "italic"), text_color="#AAAAAA").pack(side="bottom")
         
-        self.btn_gerar_footer = ctk.CTkButton(self.footer, text="2. GERAR ETIQUETAS AVULSAS", command=self.gerar_pdf, 
+        self.btn_gerar_footer = ctk.CTkButton(self.footer, text="2. GERAR ETIQUETAS", command=self.gerar_pdf, 
                                               fg_color=COR_BOTAO_MARROM, height=50, font=("Segoe UI", 16, "bold"))
         self.btn_gerar_footer.pack(pady=(5, 2), fill="x", padx=100)
 
@@ -98,7 +109,8 @@ class SistemaEstoqueBellga(ctk.CTk):
             try:
                 with open(DB_FILE, "r", encoding="utf-8") as f: 
                     dados = json.load(f)
-                    return {k.upper(): v.upper() for k, v in dados.items()}
+                    if isinstance(dados, dict):
+                        return {str(k).upper(): str(v).upper() for k, v in dados.items()}
             except: 
                 return {}
         return {}
@@ -134,7 +146,6 @@ class SistemaEstoqueBellga(ctk.CTk):
         ctk.CTkLabel(inner_topo, text="BELLGA CALÇADOS", font=("Segoe UI", 28, "bold"), 
                      text_color=COR_DEST_DOURADO).pack(pady=5)
 
-    # Modificação 1: Forçar tudo em Letra Maiúscula enquanto digita
     def capturar_caps_lock(self, event, widget):
         if event.keysym in ("Shift_L", "Shift_R", "Control_L", "Control_R", "Caps_Lock", "BackSpace", "Left", "Right", "Up", "Down"):
             return
@@ -146,7 +157,6 @@ class SistemaEstoqueBellga(ctk.CTk):
             widget.insert(0, texto_maiusculo)
             widget.icursor(posicao)
 
-    # Modificação 2: Lógica de autocompletar ao digitar nome do material
     def gerenciar_autocompletar(self, event, widget_nome, widget_cod):
         self.capturar_caps_lock(event, widget_nome)
         texto = widget_nome.get().strip().upper()
@@ -163,12 +173,11 @@ class SistemaEstoqueBellga(ctk.CTk):
             return
             
         self.menu_sugestao = ctk.CTkFrame(self, fg_color="#333333", border_color=COR_DEST_DOURADO, border_width=1)
-        # Posiciona a caixinha de sugestões logo abaixo do campo de texto correspondente
         x = widget_nome.winfo_rootx() - self.winfo_rootx()
         y = widget_nome.winfo_rooty() - self.winfo_rooty() + widget_nome.winfo_height()
         self.menu_sugestao.place(x=x, y=y, width=widget_nome.winfo_width())
         
-        for s in sugestoes[:5]: # Mostra no máximo 5 sugestões
+        for s in sugestoes[:5]:
             btn = ctk.CTkButton(self.menu_sugestao, text=s, font=("Segoe UI", 11), fg_color="transparent", 
                                 text_color="white", anchor="w", height=25, hover_color="#555555",
                                 command=lambda val=s: self.selecionar_sugestao(val, widget_nome, widget_cod))
@@ -185,7 +194,6 @@ class SistemaEstoqueBellga(ctk.CTk):
 
     def fechar_sugestoes_clique_fora(self, event):
         if self.menu_sugestao:
-            # Não fecha se o clique foi dentro da própria caixinha de sugestão
             x, y = self.menu_sugestao.winfo_pointerxy()
             x1 = self.menu_sugestao.winfo_rootx()
             y1 = self.menu_sugestao.winfo_rooty()
@@ -195,14 +203,12 @@ class SistemaEstoqueBellga(ctk.CTk):
                 self.menu_sugestao.destroy()
                 self.menu_sugestao = None
 
-    # Modificação 3: Função do Botão Limpar Tela
     def limpar_tela(self):
         for w in self.frame_itens.winfo_children(): 
             w.destroy()
         self.itens_nfe = []
-        self.num_nf = ""
-        self.nome_fornecedor = ""
-        self.btn_gerar_footer.configure(text="2. GERAR ETIQUETAS AVULSAS")
+        self.e_fornecedor_geral.delete(0, "end")
+        self.e_nf_geral.delete(0, "end")
         if self.menu_sugestao:
             self.menu_sugestao.destroy()
             self.menu_sugestao = None
@@ -214,12 +220,15 @@ class SistemaEstoqueBellga(ctk.CTk):
             with open(caminho, 'r', encoding='utf-8') as f:
                 dados = xmltodict.parse(f.read())
             inf = dados.get('nfeProc', {}).get('NFe', {}).get('infNFe', {}) or dados.get('NFe', {}).get('infNFe', {})
-            self.num_nf = inf['ide']['nNF']
-            self.nome_fornecedor = inf['emit']['xNome'].upper()
+            num_nf = inf['ide']['nNF']
+            nome_fornecedor = inf['emit']['xNome'].upper()
             det = inf['det']
             if not isinstance(det, list): det = [det]
 
             self.limpar_tela()
+
+            self.e_fornecedor_geral.insert(0, nome_fornecedor)
+            self.e_nf_geral.insert(0, num_nf)
 
             for i, p in enumerate(det):
                 nome_prod = p['prod']['xProd'].upper()
@@ -268,8 +277,6 @@ class SistemaEstoqueBellga(ctk.CTk):
                 
                 self.itens_nfe.append({'chk':v_chk, 'e_nome':e_nome, 'e_qtd_xml':e_qtd_xml, 'e_conv':e_conv, 'e_cod':e_c, 'e_vol':e_v, 'e_pad':e_qp, 'e_so_num':e_so_num, 'manual':False})
             
-            self.btn_gerar_footer.configure(text=f"2. GERAR ETIQUETAS (NF {self.num_nf})")
-            
         except Exception as e: messagebox.showerror("Erro", f"Erro no XML: {e}")
 
     def adicionar_linha_manual(self):
@@ -301,7 +308,6 @@ class SistemaEstoqueBellga(ctk.CTk):
         e_c.grid(row=0, column=4, padx=2)
         e_c.bind("<KeyRelease>", lambda event, w=e_c: self.capturar_caps_lock(event, w))
         
-        # Vincula o autocompletar inteligente no campo de Nome
         e_nome.bind("<KeyRelease>", lambda event, n=e_nome, c=e_c: self.gerenciar_autocompletar(event, n, c))
         
         e_v = ctk.CTkEntry(row, justify="center", width=45, height=28); e_v.insert(0, "1"); e_v.grid(row=0, column=5, padx=2)
@@ -332,6 +338,8 @@ class SistemaEstoqueBellga(ctk.CTk):
         if not selecionados: return
         
         data_i = datetime.now().strftime("%d/%m/%Y")
+        forn_geral = self.e_fornecedor_geral.get().strip().upper()
+        nf_geral = self.e_nf_geral.get().strip().upper()
         
         try:
             diretorio_base = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -369,12 +377,12 @@ class SistemaEstoqueBellga(ctk.CTk):
                     pdf.add_page()
                     pdf.set_font("Helvetica", 'B', 11)
                     
-                    forn_texto = f"FORN: {self.nome_fornecedor[:35]}" if self.nome_fornecedor else "FORN:"
+                    forn_texto = f"FORN: {forn_geral[:35]}" if forn_geral else "FORN:"
                     pdf.text(5, 10, forn_texto)
                     pdf.text(5, 18, f"MAT: {nome_prod[:40]}")
                     pdf.set_font("Helvetica", '', 11)
                     
-                    nf_texto = f"NF: {self.num_nf} | COD: {c_int}" if self.num_nf else f"NF: | COD: {c_int}"
+                    nf_texto = f"NF: {nf_geral} | COD: {c_int}" if nf_geral else f"NF: | COD: {c_int}"
                     pdf.text(5, 26, nf_texto)
                     
                     qtd_final_str = f"{qtd_v:.2f}".rstrip('0').rstrip('.')
@@ -388,7 +396,7 @@ class SistemaEstoqueBellga(ctk.CTk):
                     buf.seek(0)
                     pdf.image(buf, x=15, y=36, w=70, h=12)
 
-            nome_arquivo = f"Etiquetas_NF_{self.num_nf}.pdf" if self.num_nf else f"Etiquetas_Avulsas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            nome_arquivo = f"Etiquetas_NF_{nf_geral}.pdf" if nf_geral else f"Etiquetas_Avulsas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
             caminho_final = os.path.join(pasta_pdfs, nome_arquivo)
             pdf.output(caminho_final)
             os.startfile(caminho_final)

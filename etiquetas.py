@@ -28,6 +28,7 @@ class SistemaEstoqueBellga(ctk.CTk):
         self.itens_nfe = []
         self.num_nf = ""
         self.nome_fornecedor = ""
+        self.menu_sugestao = None
         
         self.main_container = ctk.CTkFrame(self, fg_color=COR_FUNDO)
         self.main_container.pack(fill="both", expand=True, padx=10, pady=10)
@@ -40,15 +41,21 @@ class SistemaEstoqueBellga(ctk.CTk):
         self.botoes_container = ctk.CTkFrame(self.main_container, fg_color=COR_FUNDO)
         self.botoes_container.pack(fill="x", pady=(5, 10))
         
-        self.btn_carregar = ctk.CTkButton(self.botoes_container, text="1. IMPORTAR NOTA FISCAL (XML)", 
+        self.btn_carregar = ctk.CTkButton(self.botoes_container, text="1. IMPORTAR XML", 
                                            command=self.processar_xml, fg_color=COR_BOTAO_MARROM,
-                                           font=("Segoe UI", 16, "bold"), height=45)
+                                           font=("Segoe UI", 15, "bold"), height=45)
         self.btn_carregar.pack(side="left", expand=True, fill="x", padx=(0, 5))
         
         self.btn_adicionar = ctk.CTkButton(self.botoes_container, text="+ ADICIONAR MATERIAL", 
                                             command=self.adicionar_linha_manual, fg_color="#34495e",
-                                            font=("Segoe UI", 14, "bold"), height=45, state="normal")
-        self.btn_adicionar.pack(side="right", expand=True, fill="x", padx=(5, 0))
+                                            font=("Segoe UI", 14, "bold"), height=45)
+        self.btn_adicionar.pack(side="left", expand=True, fill="x", padx=5)
+
+        # Modificação 3: Botão Limpar Tela
+        self.btn_limpar = ctk.CTkButton(self.botoes_container, text="LIMPAR TELA / NOVA NF", 
+                                            command=self.limpar_tela, fg_color="#c0392b", hover_color="#962d22",
+                                            font=("Segoe UI", 14, "bold"), height=45)
+        self.btn_limpar.pack(side="right", expand=True, fill="x", padx=(5, 0))
 
         self.header = ctk.CTkFrame(self.main_container, fg_color=COR_FUNDO)
         self.header.pack(fill="x", padx=15)
@@ -84,24 +91,30 @@ class SistemaEstoqueBellga(ctk.CTk):
                                               fg_color=COR_BOTAO_MARROM, height=50, font=("Segoe UI", 16, "bold"))
         self.btn_gerar_footer.pack(pady=(5, 2), fill="x", padx=100)
 
+        self.bind("<Button-1>", self.fechar_sugestoes_clique_fora)
+
     def carregar_memoria(self):
         if os.path.exists(DB_FILE):
             try:
-                with open(DB_FILE, "r") as f: return json.load(f)
-            except: return {}
+                with open(DB_FILE, "r", encoding="utf-8") as f: 
+                    dados = json.load(f)
+                    return {k.upper(): v.upper() for k, v in dados.items()}
+            except: 
+                return {}
         return {}
 
     def salvar_na_memoria(self, nome, codigo):
-        if codigo.strip():
-            self.memoria[nome] = codigo.strip()
+        if codigo.strip() and nome.strip():
+            self.memoria[nome.strip().upper()] = codigo.strip().upper()
             try:
-                with open(DB_FILE, "w") as f: json.dump(self.memoria, f)
-            except: pass
+                with open(DB_FILE, "w", encoding="utf-8") as f: 
+                    json.dump(self.memoria, f, ensure_ascii=False, indent=4)
+            except: 
+                pass
 
     def inserir_logo_e_titulo(self):
         inner_topo = ctk.CTkFrame(self.topo_container, fg_color=COR_FUNDO)
         inner_topo.pack(expand=True, fill="both")
-
         try:
             if hasattr(sys, '_MEIPASS'):
                 path = os.path.join(sys._MEIPASS, "logo_bellga.png")
@@ -118,19 +131,81 @@ class SistemaEstoqueBellga(ctk.CTk):
                 self.logo_label.place(x=10, y=0)
         except:
             pass 
-
         ctk.CTkLabel(inner_topo, text="BELLGA CALÇADOS", font=("Segoe UI", 28, "bold"), 
                      text_color=COR_DEST_DOURADO).pack(pady=5)
 
-    def vincular_navegacao_enter(self, campos_ordenados):
-        for i in range(len(campos_ordenados) - 1):
-            atual = campos_ordenados[i]
-            proximo = campos_ordenados[i+1]
-            atual.bind("<Return>", lambda event, prox=proximo: self.pular_foco(event, prox), add="+")
+    # Modificação 1: Forçar tudo em Letra Maiúscula enquanto digita
+    def capturar_caps_lock(self, event, widget):
+        if event.keysym in ("Shift_L", "Shift_R", "Control_L", "Control_R", "Caps_Lock", "BackSpace", "Left", "Right", "Up", "Down"):
+            return
+        posicao = widget.index("insert")
+        texto_atual = widget.get()
+        texto_maiusculo = texto_atual.upper()
+        if texto_atual != texto_maiusculo:
+            widget.delete(0, "end")
+            widget.insert(0, texto_maiusculo)
+            widget.icursor(posicao)
 
-    def pular_foco(self, event, proximo_widget):
-        proximo_widget.focus_set()
-        return "break"
+    # Modificação 2: Lógica de autocompletar ao digitar nome do material
+    def gerenciar_autocompletar(self, event, widget_nome, widget_cod):
+        self.capturar_caps_lock(event, widget_nome)
+        texto = widget_nome.get().strip().upper()
+        
+        if self.menu_sugestao:
+            self.menu_sugestao.destroy()
+            self.menu_sugestao = None
+            
+        if not texto:
+            return
+            
+        sugestoes = [nome for nome in self.memoria.keys() if texto in nome]
+        if not sugestoes:
+            return
+            
+        self.menu_sugestao = ctk.CTkFrame(self, fg_color="#333333", border_color=COR_DEST_DOURADO, border_width=1)
+        # Posiciona a caixinha de sugestões logo abaixo do campo de texto correspondente
+        x = widget_nome.winfo_rootx() - self.winfo_rootx()
+        y = widget_nome.winfo_rooty() - self.winfo_rooty() + widget_nome.winfo_height()
+        self.menu_sugestao.place(x=x, y=y, width=widget_nome.winfo_width())
+        
+        for s in sugestoes[:5]: # Mostra no máximo 5 sugestões
+            btn = ctk.CTkButton(self.menu_sugestao, text=s, font=("Segoe UI", 11), fg_color="transparent", 
+                                text_color="white", anchor="w", height=25, hover_color="#555555",
+                                command=lambda val=s: self.selecionar_sugestao(val, widget_nome, widget_cod))
+            btn.pack(fill="x", padx=2, pady=1)
+
+    def selecionar_sugestao(self, valor, widget_nome, widget_cod):
+        widget_nome.delete(0, "end")
+        widget_nome.insert(0, valor)
+        widget_cod.delete(0, "end")
+        widget_cod.insert(0, self.memoria.get(valor, ""))
+        if self.menu_sugestao:
+            self.menu_sugestao.destroy()
+            self.menu_sugestao = None
+
+    def fechar_sugestoes_clique_fora(self, event):
+        if self.menu_sugestao:
+            # Não fecha se o clique foi dentro da própria caixinha de sugestão
+            x, y = self.menu_sugestao.winfo_pointerxy()
+            x1 = self.menu_sugestao.winfo_rootx()
+            y1 = self.menu_sugestao.winfo_rooty()
+            x2 = x1 + self.menu_sugestao.winfo_width()
+            y2 = y1 + self.menu_sugestao.winfo_height()
+            if not (x1 <= x <= x2 and y1 <= y <= y2):
+                self.menu_sugestao.destroy()
+                self.menu_sugestao = None
+
+    # Modificação 3: Função do Botão Limpar Tela
+    def limpar_tela(self):
+        for w in self.frame_itens.winfo_children(): 
+            w.destroy()
+        self.itens_nfe = []
+        self.num_nf = ""
+        self.nome_fornecedor = ""
+        self.btn_gerar_footer.configure(text="2. GERAR ETIQUETAS AVULSAS")
+        if self.menu_sugestao:
+            self.menu_sugestao.destroy()
+            self.menu_sugestao = None
 
     def processar_xml(self):
         caminho = filedialog.askopenfilename(filetypes=[("XML", "*.xml")])
@@ -140,15 +215,14 @@ class SistemaEstoqueBellga(ctk.CTk):
                 dados = xmltodict.parse(f.read())
             inf = dados.get('nfeProc', {}).get('NFe', {}).get('infNFe', {}) or dados.get('NFe', {}).get('infNFe', {})
             self.num_nf = inf['ide']['nNF']
-            self.nome_fornecedor = inf['emit']['xNome']
+            self.nome_fornecedor = inf['emit']['xNome'].upper()
             det = inf['det']
             if not isinstance(det, list): det = [det]
 
-            for w in self.frame_itens.winfo_children(): w.destroy()
-            self.itens_nfe = []
+            self.limpar_tela()
 
             for i, p in enumerate(det):
-                nome_prod = p['prod']['xProd']
+                nome_prod = p['prod']['xProd'].upper()
                 qtd_total = float(p['prod']['qCom'])
                 
                 row = ctk.CTkFrame(self.frame_itens, fg_color="#454545", height=40)
@@ -169,6 +243,7 @@ class SistemaEstoqueBellga(ctk.CTk):
                 e_nome = ctk.CTkEntry(row, font=("Segoe UI", 11), height=28)
                 e_nome.insert(0, nome_prod)
                 e_nome.grid(row=0, column=1, sticky="ew", padx=2)
+                e_nome.bind("<KeyRelease>", lambda event, w=e_nome: self.capturar_caps_lock(event, w))
                 
                 e_qtd_xml = ctk.CTkEntry(row, font=("Segoe UI", 11), width=55, height=28, justify="center", fg_color="#333333")
                 e_qtd_xml.insert(0, str(qtd_total))
@@ -179,6 +254,7 @@ class SistemaEstoqueBellga(ctk.CTk):
                 e_c = ctk.CTkEntry(row, justify="center", width=85, height=28)
                 e_c.insert(0, self.memoria.get(nome_prod, ""))
                 e_c.grid(row=0, column=4, padx=2)
+                e_c.bind("<KeyRelease>", lambda event, w=e_c: self.capturar_caps_lock(event, w))
                 
                 e_v = ctk.CTkEntry(row, justify="center", width=45, height=28); e_v.insert(0, "1"); e_v.grid(row=0, column=5, padx=2)
                 e_qp = ctk.CTkEntry(row, justify="center", width=70, height=28); e_qp.insert(0, str(qtd_total)); e_qp.grid(row=0, column=6, padx=2)
@@ -188,9 +264,7 @@ class SistemaEstoqueBellga(ctk.CTk):
                 e_so_num.grid(row=0, column=7, padx=12)
                 
                 e_c.bind("<FocusOut>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c))
-                e_c.bind("<Return>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c), add="+")
-                
-                self.vincular_navegacao_enter([e_nome, e_c, e_v, e_qp, e_so_num])
+                e_c.bind("<Return>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c))
                 
                 self.itens_nfe.append({'chk':v_chk, 'e_nome':e_nome, 'e_qtd_xml':e_qtd_xml, 'e_conv':e_conv, 'e_cod':e_c, 'e_vol':e_v, 'e_pad':e_qp, 'e_so_num':e_so_num, 'manual':False})
             
@@ -222,8 +296,14 @@ class SistemaEstoqueBellga(ctk.CTk):
         e_qtd_xml.grid(row=0, column=2, padx=2)
 
         e_conv = ctk.CTkEntry(row, justify="center", width=55, height=28); e_conv.insert(0, "1"); e_conv.grid(row=0, column=3, padx=2)
+        
         e_c = ctk.CTkEntry(row, justify="center", width=85, height=28); e_c.insert(0, "")
         e_c.grid(row=0, column=4, padx=2)
+        e_c.bind("<KeyRelease>", lambda event, w=e_c: self.capturar_caps_lock(event, w))
+        
+        # Vincula o autocompletar inteligente no campo de Nome
+        e_nome.bind("<KeyRelease>", lambda event, n=e_nome, c=e_c: self.gerenciar_autocompletar(event, n, c))
+        
         e_v = ctk.CTkEntry(row, justify="center", width=45, height=28); e_v.insert(0, "1"); e_v.grid(row=0, column=5, padx=2)
         e_qp = ctk.CTkEntry(row, justify="center", width=70, height=28); e_qp.insert(0, "0"); e_qp.grid(row=0, column=6, padx=2)
         
@@ -232,16 +312,13 @@ class SistemaEstoqueBellga(ctk.CTk):
         e_so_num.grid(row=0, column=7, padx=12)
         
         e_c.bind("<FocusOut>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c))
-        e_c.bind("<Return>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c), add="+")
-        
-        self.vincular_navegacao_enter([e_nome, e_c, e_v, e_qp, e_so_num])
+        e_c.bind("<Return>", lambda event, n=e_nome, c=e_c: self.buscar_por_codigo_callback(event, n, c))
         
         self.itens_nfe.append({'chk':v_chk, 'e_nome':e_nome, 'e_qtd_xml':e_qtd_xml, 'e_conv':e_conv, 'e_cod':e_c, 'e_vol':e_v, 'e_pad':e_qp, 'e_so_num':e_so_num, 'manual':True})
-        
         e_nome.focus_set()
 
     def buscar_por_codigo_callback(self, event, widget_nome, widget_cod):
-        codigo_atual = widget_cod.get().strip()
+        codigo_atual = widget_cod.get().strip().upper()
         if not codigo_atual: return
         
         for nome_salvo, cod_salvo in self.memoria.items():
@@ -250,54 +327,10 @@ class SistemaEstoqueBellga(ctk.CTk):
                 widget_nome.insert(0, nome_salvo)
                 break
 
-    def abrir_janela_input(self, titulo, mensagem):
-        janela_dialogo = ctk.CTkToplevel(self)
-        janela_dialogo.title(titulo)
-        janela_dialogo.geometry("400x200")
-        janela_dialogo.configure(fg_color=COR_FUNDO)
-        janela_dialogo.resizable(False, False)
-        janela_dialogo.transient(self)
-        janela_dialogo.grab_set()
-        
-        self.update_idletasks()
-        x = self.winfo_x() + (self.winfo_width() // 2) - 200
-        y = self.winfo_y() + (self.winfo_height() // 2) - 100
-        janela_dialogo.geometry(f"+{x}+{y}")
-        
-        ctk.CTkLabel(janela_dialogo, text=mensagem, font=("Segoe UI", 14, "bold"), text_color=COR_DEST_DOURADO).pack(pady=(25, 10), padx=20)
-        
-        entrada = ctk.CTkEntry(janela_dialogo, width=320, height=35, font=("Segoe UI", 12), fg_color="#333333", border_color=COR_DEST_DOURADO)
-        entrada.pack(pady=10)
-        entrada.focus_set()
-        
-        resultado = {"valor": ""}
-        
-        def confirmar():
-            resultado["valor"] = entrada.get()
-            janela_dialogo.destroy()
-            
-        entrada.bind("<Return>", lambda e: confirmar())
-        
-        ctk.CTkButton(janela_dialogo, text="CONFIRMAR", font=("Segoe UI", 12, "bold"), fg_color=COR_BOTAO_MARROM, width=150, height=35, command=confirmar).pack(pady=(5, 15))
-        
-        self.wait_window(janela_dialogo)
-        return resultado["valor"]
-
     def gerar_pdf(self):
         selecionados = [i for i in self.itens_nfe if i['chk'].get()]
         if not selecionados: return
         
-        possui_manual_selecionado = any(item.get('manual', False) for item in selecionados)
-        
-        if possui_manual_selecionado and not self.num_nf:
-            forn_input = self.abrir_janela_input("Dados do Fornecedor", "DIGITE O NOME DO FORNECEDOR:")
-            if forn_input:
-                self.nome_fornecedor = forn_input.strip().upper()
-                
-            nf_input = self.abrir_janela_input("Número da NF", "DIGITE O NÚMERO DA NOTA FISCAL:")
-            if nf_input:
-                self.num_nf = nf_input.strip().upper()
-
         data_i = datetime.now().strftime("%d/%m/%Y")
         
         try:
@@ -308,9 +341,9 @@ class SistemaEstoqueBellga(ctk.CTk):
 
             pdf = FPDF(orientation='L', unit='mm', format=(50, 100))
             for item in selecionados:
-                nome_prod = item['e_nome'].get().strip()
+                nome_prod = item['e_nome'].get().strip().upper()
                 qtd_base_xml = float(item['e_qtd_xml'].get().replace(',', '.') or 0)
-                c_int = item['e_cod'].get().strip()
+                c_int = item['e_cod'].get().strip().upper()
                 conv = float(item['e_conv'].get().replace(',', '.') or 1)
                 vols = int(item['e_vol'].get() or 1)
                 padrao = float(item['e_pad'].get().replace(',', '.') or qtd_base_xml)

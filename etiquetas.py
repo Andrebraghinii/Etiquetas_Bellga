@@ -36,7 +36,6 @@ class SistemaEstoqueBellga(ctk.CTk):
 
         self.inserir_logo_e_titulo()
 
-        # Painel Superior para Fornecedor e NF digitados manualmente ou vindos do XML
         self.dados_nf_container = ctk.CTkFrame(self.main_container, fg_color="#3D3D3D", border_color=COR_DEST_DOURADO, border_width=1)
         self.dados_nf_container.pack(fill="x", padx=5, pady=(0, 10))
         
@@ -385,12 +384,18 @@ class SistemaEstoqueBellga(ctk.CTk):
                     nf_texto = f"NF: {nf_geral} | COD: {c_int}" if nf_geral else f"NF: | COD: {c_int}"
                     pdf.text(5, 26, nf_texto)
                     
-                    qtd_final_str = f"{qtd_v:.2f}".rstrip('0').rstrip('.')
+                    # Correção: Mostra a quantidade com vírgula (,) no texto impresso na etiqueta
+                    qtd_final_str_exibicao = f"{qtd_v:.2f}".rstrip('0').rstrip('.')
+                    qtd_final_str_exibicao = qtd_final_str_exibicao.replace('.', ',')
+                    
                     vol_str = f"1/1" if apenas_uma else f"{n_vol}/{vols}"
-                    pdf.text(5, 34, f"DATA: {data_i} | VOL: {vol_str} | QTD: {qtd_final_str}")
+                    pdf.text(5, 34, f"DATA: {data_i} | VOL: {vol_str} | QTD: {qtd_final_str_exibicao}")
                     
                     num_aleatorio = random.randint(1000, 9999)
-                    conteudo_barcode = f"{c_int}#{qtd_final_str}${"0000" if apenas_uma else num_aleatorio}"
+                    
+                    # Correção CRÍTICA: Altera o ponto (.) para vírgula (,) no conteúdo codificado do código de barras
+                    conteudo_barcode = f"{c_int}#{qtd_final_str_exibicao}${"0000" if apenas_uma else num_aleatorio}"
+                    
                     buf = io.BytesIO()
                     Code128(conteudo_barcode, writer=ImageWriter()).write(buf, options={"write_text":False, "module_height":5.0})
                     buf.seek(0)
